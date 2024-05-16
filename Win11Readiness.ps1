@@ -136,7 +136,12 @@ else {
 
 # Disk Check
 Write-Host "Disk Size: " -NoNewline
-if (($disk.Size / $expo) -ge 64) {
+if (($disk | Measure-Object).Count > 1){
+    $disksize = $disk[0].Size
+    } else {
+    $disksize = $disk.Size
+    }
+if (($disksize / $expo) -ge 64) {
     Write-Host "Pass" -ForegroundColor Green
 }
 else {
@@ -169,6 +174,8 @@ if ((($wddm).Contains("WDDM")) -and $wddmVersion -ge 2.0) {
 }
 else {
     Write-Host "Fail" -ForegroundColor Red
+    Write-Host "WDDM Version : " -NoNewline
+    Write-Host $wddmVersion
 }
 
 # Display Check
@@ -192,7 +199,7 @@ $result = New-Object -TypeName PSObject -Property @{
     'Address Width'   = $processor.AddressWidth
     'TPM Version'     = $TPM.SpecVersion
     'Memory(GB)'      = (($RAM | Measure-Object -Property Capacity -Sum).sum / $expo)
-    'Disk'            = ($disk.Size / $expo)
+    'Disk'            = ($disksize / $expo)
     'DisplayHeight'   = $display.CurrentVerticalResolution
     'DisplayWidth'    = $display.CurrentHorizontalResolution
     'DisplayDepth'    = $display.CurrentBitsPerPixel
@@ -204,5 +211,5 @@ $payload = $result | ConvertTo-Json
 $url = "https://script.google.com/macros/s/AKfycbwTqGW5k-9TjwRYujxqX74TlkJosOC2zaPh7Jn07QoSKs7VSOEif2hDjLKMO4JQe8FcgQ/exec"
 Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $payload
 #$payload
-#Read-Host
+Read-Host
     
