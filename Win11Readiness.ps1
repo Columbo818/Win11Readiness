@@ -211,5 +211,4 @@ $payload = $result | ConvertTo-Json
 $url = "https://script.google.com/macros/s/AKfycbwTqGW5k-9TjwRYujxqX74TlkJosOC2zaPh7Jn07QoSKs7VSOEif2hDjLKMO4JQe8FcgQ/exec"
 Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $payload
 #$payload
-Read-Host
-    
+Read-Host -Prompt "Press Return to exit..."
