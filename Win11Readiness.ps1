@@ -79,27 +79,37 @@ if ($firmware) {
 }
 
 # Create a folder to hold the dxdiag output
-if (!(Test-Path -Path C:\COLA\Win11)) {
-    New-Item -ItemType Directory -Path C:\COLA\Win11 | Out-Null
+if (!(Test-Path -Path C:\COLAT\Win11)) {
+    New-Item -ItemType Directory -Path C:\COLAT\Win11 | Out-Null
 }
 
 # Create the dxdiag output
-dxdiag.exe /x C:\COLA\Win11\dx.xml
+dxdiag.exe /x C:\COLAT\Win11\dx.xml
 
 # Wait for the file to be created
 $counter = 0
-while (!(Test-Path -Path C:\COLA\Win11\dx.xml)) {
-    if ($counter -ge 15) {
+Write-Host "Generating dxdiag output."
+Write-Host "Waiting for filesystem." -NoNewline
+while (!(Test-Path -Path C:\COLAT\Win11\dx.xml)) {
+    if ($counter -ge 120) {
         exit
     }
+    Write-Host "." -NoNewline
     $counter += 1
     Sleep -Seconds 1
 }
 
+Write-Host
+
 # Parse the XML output to obtain GPU and driver info
-[xml]$directX = Get-Content C:\COLA\Win11\dx.xml
+[xml]$directX = Get-Content C:\COLAT\Win11\dx.xml
 $dxVersion = $directX.DxDiag.SystemInformation.DirectXVersion
-$wddm = $directX.DxDiag.DisplayDevices.DisplayDevice.DriverModel
+$wddm = $directX.DxDiag.DisplayDevices.DisplayDevice
+if($wddm.Count -gt 1){
+    $wddm = $directX.DxDiag.DisplayDevices.DisplayDevice[0].DriverModel
+} else {
+    $wddm = $directX.DxDiag.DisplayDevices.DisplayDevice.DriverModel
+    }
 
 # Output IDs
 Write-Host "Hostname: $hostname"
@@ -136,7 +146,7 @@ else {
 
 # Disk Check
 Write-Host "Disk Size: " -NoNewline
-if (($disk | Measure-Object).Count > 1){
+if (($disk | Measure-Object).Count -gt 1){
     $disksize = $disk[0].Size
     } else {
     $disksize = $disk.Size
