@@ -15,7 +15,7 @@
 # - UEFI Firmware with Secureboot capability
 #
 #
-# VERSION 1.0
+# VERSION 1.1
 #
 # (C) Copyright 2024 Charles Miller (ch@rles.pro)
 ##############################################################################
@@ -39,13 +39,15 @@ THE SOFTWARE.
 ##############################################################################
 #>
 
+$TESTING = $false
 
+if ($TESTING) {
 # Self-Elevation wizardry. Only required for Testing...
-if (!(New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Start-Process -FilePath 'powershell' -ArgumentList ('-File', $MyInvocation.MyCommand.Source, $args | % { $_ }) -Verb RunAs
-    exit
+    if (!(New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Start-Process -FilePath 'powershell' -ArgumentList ('-File', $MyInvocation.MyCommand.Source, $args | % { $_ }) -Verb RunAs
+        exit
+    }
 }
-
 
 # Get Hostname and Domain.
 $hostname = $env:COMPUTERNAME
@@ -72,11 +74,26 @@ $TPM = Get-WmiObject -Namespace "root\CIMV2\Security\MicrosoftTpm" -Class Win32_
 $RAM = Get-WmiObject -Namespace "root\CIMV2:Win32_PhysicalMemory" -Class Win32_PhysicalMemory
 $disk = Get-WmiObject -Namespace "root\CIMV2:Win32_DiskDrive" -Class Win32_DiskDrive
 $display = Get-WmiObject -Namespace "root\CIMV2:Win32_VideoController" -Class Win32_VideoController
+
+if ($TPM) {
+    $tpmcheck = $TPM.SpecVersion
+} else {
+    $tpmcheck = "NO TPM"
+    }
+
 $secureBoot = Confirm-SecureBootUEFI
+if ($secureBoot) {
+    $sbcheck = "TRUE"
+} else {
+    $sbcheck = "FALSE"
+    }
+
 $firmware = bcdedit | Select-String "path.*efi"
 if ($firmware) {
     $fwcheck = "UEFI"
-}
+} else {
+    $fwcheck = "BIOS"
+    }
 
 # Create a folder to hold the dxdiag output
 if (!(Test-Path -Path C:\COLAT\Win11)) {
@@ -96,7 +113,7 @@ while (!(Test-Path -Path C:\COLAT\Win11\dx.xml)) {
     }
     Write-Host "." -NoNewline
     $counter += 1
-    Sleep -Seconds 1
+    Start-Sleep -Seconds 1
 }
 
 Write-Host
@@ -127,12 +144,15 @@ else {
 
 # TPM Check
 Write-Host "Trusted Platform Module: " -NoNewline
+if(!($TPM)){
+    $TPM = "NONE"
+    } else {
 if (($TPM.SpecVersion).Contains("2.0")) {
     Write-Host "Pass" -ForegroundColor Green
 }
 else {
     Write-Host "Fail" -ForegroundColor Red
-}
+}}
 
 # RAM Check
 Write-Host "Physical Memory: " -NoNewline
@@ -193,7 +213,7 @@ $height = $display.CurrentVerticalResolution
 $width = $display.CurrentHorizontalResolution
 $depth = $display.CurrentBitsPerPixel
 Write-Host "Resolution: " -NoNewline
-if (($height -ge 720) -and ($width -ge 1200) -and ($depth -ge 8)) {
+if (($height -ge 720) -and ($width -ge 1200) -and ($depth -eq 32)) {
     Write-Host "Pass" -ForegroundColor Green
 }
 else {
@@ -207,18 +227,19 @@ $result = New-Object -TypeName PSObject -Property @{
     'Processor Speed' = $processor.MaxClockSpeed
     'Processor Cores' = $processor.numberOfCores
     'Address Width'   = $processor.AddressWidth
-    'TPM Version'     = $TPM.SpecVersion
+    'TPM Version'     = $tpmcheck
     'Memory(GB)'      = (($RAM | Measure-Object -Property Capacity -Sum).sum / $expo)
     'Disk'            = ($disksize / $expo)
     'DisplayHeight'   = $display.CurrentVerticalResolution
     'DisplayWidth'    = $display.CurrentHorizontalResolution
     'DisplayDepth'    = $display.CurrentBitsPerPixel
-    'SecureBoot'      = $secureBoot
+    'DirectX Version' = $dxVersion
+    'SecureBoot'      = $sbcheck
     'Firmware'        = $fwcheck
 }
 
 $payload = $result | ConvertTo-Json
 $url = "https://script.google.com/macros/s/AKfycbwTqGW5k-9TjwRYujxqX74TlkJosOC2zaPh7Jn07QoSKs7VSOEif2hDjLKMO4JQe8FcgQ/exec"
-Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $payload
+Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $payload | Out-Null
 #$payload
 Read-Host -Prompt "Press Return to exit..."
