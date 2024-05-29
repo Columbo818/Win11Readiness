@@ -50,6 +50,7 @@ if ($TESTING) {
 }
 
 # Get Hostname and Domain.
+$hostname = ""
 $hostname = $env:COMPUTERNAME
 try {
     $domain = (Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem).Domain
@@ -76,7 +77,7 @@ $disk = Get-WmiObject -Namespace "root\CIMV2:Win32_DiskDrive" -Class Win32_DiskD
 $display = Get-WmiObject -Namespace "root\CIMV2:Win32_VideoController" -Class Win32_VideoController
 
 if ($TPM) {
-    $tpmcheck = $TPM.SpecVersion
+    $tpmcheck = $TPM.SpecVersion.Split()[0].Trim(",")
 } else {
     $tpmcheck = "NO TPM"
     }
@@ -247,4 +248,4 @@ $result = New-Object -TypeName PSObject -Property @{
 
 $payload = $result | ConvertTo-Json
 $url = "https://script.google.com/macros/s/AKfycbwTqGW5k-9TjwRYujxqX74TlkJosOC2zaPh7Jn07QoSKs7VSOEif2hDjLKMO4JQe8FcgQ/exec"
-Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $payload | Out-Null
+Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $payload # | Out-Null
