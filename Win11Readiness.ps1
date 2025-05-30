@@ -39,7 +39,7 @@ THE SOFTWARE.
 ##############################################################################
 #>
 
-$TESTING = $false
+$TESTING = $true
 
 if ($TESTING) {
 # Self-Elevation wizardry. Only required for Testing...
@@ -97,18 +97,18 @@ if ($firmware) {
     }
 
 # Create a folder to hold the dxdiag output
-if (!(Test-Path -Path C:\COLAT\Win11)) {
-    New-Item -ItemType Directory -Path C:\COLAT\Win11 | Out-Null
+if (!(Test-Path -Path C:\WIN11\Win11)) {
+    New-Item -ItemType Directory -Path C:\WIN11\Win11 | Out-Null
 }
 
 # Create the dxdiag output
-dxdiag.exe /x C:\COLAT\Win11\dx.xml
+dxdiag.exe /x C:\WIN11\Win11\dx.xml
 
 # Wait for the file to be created
 $counter = 0
 Write-Host "Generating dxdiag output."
 Write-Host "Waiting for filesystem." -NoNewline
-while (!(Test-Path -Path C:\COLAT\Win11\dx.xml)) {
+while (!(Test-Path -Path C:\WIN11\Win11\dx.xml)) {
     if ($counter -ge 120) {
         exit
     }
@@ -120,7 +120,7 @@ while (!(Test-Path -Path C:\COLAT\Win11\dx.xml)) {
 Write-Host
 
 # Parse the XML output to obtain GPU and driver info
-[xml]$directX = Get-Content C:\COLAT\Win11\dx.xml
+[xml]$directX = Get-Content C:\WIN11\Win11\dx.xml
 $dxVersion = $directX.DxDiag.SystemInformation.DirectXVersion
 $wddm = $directX.DxDiag.DisplayDevices.DisplayDevice
 if($wddm.Count -gt 1){
@@ -246,6 +246,4 @@ $result = New-Object -TypeName PSObject -Property @{
     'Firmware'        = $fwcheck
 }
 
-$payload = $result | ConvertTo-Json
-$url = "https://script.google.com/macros/s/AKfycbwTqGW5k-9TjwRYujxqX74TlkJosOC2zaPh7Jn07QoSKs7VSOEif2hDjLKMO4JQe8FcgQ/exec"
-Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $payload # | Out-Null
+Read-Host "Press any key to continue..."
